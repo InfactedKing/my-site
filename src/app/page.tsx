@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <h1 className="text-4xl font-bold tracking-tight">Roey’s site</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Roey&apos;s site</h1>
         <p className="mt-0 text-slate-400">First Tailwind style test.</p>
         <Image
           className="dark:invert"
@@ -23,7 +23,7 @@ export default function Home() {
             .
           </li>
           <li className="tracking-[-.01em]">
-            Welcome to Roey's first Next.js website!
+            Welcome to Roey&apos;s first Next.js website!
           </li>
         </ol>
 
