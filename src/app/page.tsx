@@ -61,7 +61,7 @@ export default function PersonalSiteHome() {
       <section id="about" className="mx-auto max-w-3xl px-4 py-16">
         <h2 className="text-2xl font-bold">About this site</h2>
         <p className="mt-3 text-slate-600">
-          This starter is minimal on purpose. Replace this content with your own sections. We'll wire data up next (local JSON, a lightweight DB, or a private API).
+          This starter is minimal on purpose. Replace this content with your own sections. We&apos;ll wire data up next (local JSON, a lightweight DB, or a private API).
         </p>
       </section>
 
