@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 // Route model
  type Route =
@@ -8,7 +8,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
   | "streaming"
   | "sports"
   | "workouts"
-  | "workouts-week"; // route kept for compatibility, label changed to "Activity Calendar"
+  | "workouts-week"; // route kept for compatibility, label shown as "Activity Calendar"
+
+// ---------- Types ----------
+interface DayEntry { label: string; note: string; }
+interface Exercise { name: string; sets: number; reps: string; weight: string; }
+interface ABPlan { warmup: string[]; A: Exercise[]; B: Exercise[]; }
 
 export default function Page() {
   // ---- Router (hash-based) ----
@@ -26,10 +31,10 @@ export default function Page() {
     return () => window.removeEventListener("hashchange", parse);
   }, []);
 
-  // ---- Local state: monthly activity/workout calendar ----
+  // ---- Activity calendar (monthly) ----
   const [current, setCurrent] = useState(() => {
     const d = new Date();
-    return { year: d.getFullYear(), month: d.getMonth() }; // month: 0-11
+    return { year: d.getFullYear(), month: d.getMonth() }; // 0-11
   });
 
   const [calData, setCalData] = useState<Record<string, Record<string, DayEntry>>>({});
@@ -43,22 +48,61 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(CAL_KEY, JSON.stringify(calData));
-    } catch {}
+    try { localStorage.setItem(CAL_KEY, JSON.stringify(calData)); } catch {}
   }, [calData]);
 
-  // Manual save (explicit button)
+  // ---- A/B Plan (editable) ----
+  const PLAN_KEY = "ab-plan-v1";
+  const defaultPlan: ABPlan = {
+    warmup: [
+      "3 min easy cardio (bike/row/jog)",
+      "Mobility: 90/90 hips 30s/side, T-spine rotations 8/side, ankle rocks 10/side",
+      "Activation: glute bridge 12, band pull-aparts 15, scap push-ups 10",
+      "Potentiation: 2–3 ramp-up sets to first lift (≈40% / 70% working weight)"
+    ],
+    A: [
+      { name: "Back Squat / Hack Squat", sets: 4, reps: "6–10", weight: "" },
+      { name: "Bulgarian Split Squat", sets: 3, reps: "8–12/leg", weight: "" },
+      { name: "Cable Leg Extension", sets: 3, reps: "10–12", weight: "" },
+      { name: "Bench Press / DB Press", sets: 4, reps: "6–10", weight: "" },
+      { name: "Incline DB Press", sets: 3, reps: "8–12", weight: "" },
+      { name: "Cable Fly (mid)", sets: 2, reps: "10–15", weight: "" },
+    ],
+    B: [
+      { name: "Romanian Deadlift", sets: 4, reps: "6–10", weight: "" },
+      { name: "Front Squat / Goblet Squat", sets: 3, reps: "8–10", weight: "" },
+      { name: "Cable Hamstring Curl", sets: 3, reps: "10–12", weight: "" },
+      { name: "Barbell or One-Arm Cable Row", sets: 4, reps: "6–10", weight: "" },
+      { name: "Lat Pulldown / Assisted Pull-ups", sets: 3, reps: "8–12", weight: "" },
+      { name: "Lateral Raise + Face Pulls", sets: 2, reps: "12–15", weight: "" },
+    ],
+  };
+
+  const [plan, setPlan] = useState<ABPlan>(defaultPlan);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PLAN_KEY);
+      if (raw) setPlan(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); } catch {}
+  }, [plan]);
+
+  // ---- Manual Save button (saves calendar + plan) ----
   const [saved, setSaved] = useState(false);
   const manualSave = () => {
     try {
       localStorage.setItem(CAL_KEY, JSON.stringify(calData));
+      localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
       setSaved(true);
       setTimeout(() => setSaved(false), 1200);
     } catch {}
   };
 
-  // ---- Streaming links (with brand colors, Apple Music instead of Spotify) ----
+  // ---- Streaming links (Apple Music instead of Spotify) ----
   const streaming = useMemo(
     () => [
       { name: "Netflix", url: "https://www.netflix.com", color: "#E50914" },
@@ -110,7 +154,9 @@ export default function Page() {
         {route === "home" && <Home />}
         {route === "streaming" && <Streaming items={streaming} />}
         {route === "sports" && <Sports />}
-        {route === "workouts" && <WorkoutsPlan />}
+        {route === "workouts" && (
+          <WorkoutsPlan plan={plan} onChange={setPlan} />
+        )}
         {route === "workouts-week" && (
           <MonthCalendar
             year={current.year}
@@ -118,12 +164,8 @@ export default function Page() {
             data={calData}
             onPrev={() => setCurrent((c) => prevMonth(c))}
             onNext={() => setCurrent((c) => nextMonth(c))}
-            onSave={(dateStr, entry) =>
-              setCalData((s) => saveDay(s, dateStr, entry))
-            }
-            onClear={(dateStr) =>
-              setCalData((s) => clearDay(s, dateStr))
-            }
+            onSave={(dateStr, entry) => setCalData((s) => saveDay(s, dateStr, entry))}
+            onClear={(dateStr) => setCalData((s) => clearDay(s, dateStr))}
           />
         )}
       </main>
@@ -139,9 +181,6 @@ export default function Page() {
   );
 }
 
-// ---------- Types ----------
-interface DayEntry { label: string; note: string; }
-
 // ---------- Subcomponents ----------
 
 function Home() {
@@ -149,9 +188,7 @@ function Home() {
     <section className="space-y-8">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold">Welcome</h2>
-        <p className="mt-2 text-slate-600">
-          Quick access to the stuff I actually use. One clean hub.
-        </p>
+        <p className="mt-2 text-slate-600">Quick access to the stuff I actually use. One clean hub.</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <a href="#/streaming" className="group rounded-xl border border-slate-200 bg-white/70 backdrop-blur p-4 hover:shadow-md transition-transform">
             <div className="flex items-center justify-between">
@@ -165,7 +202,7 @@ function Home() {
               <span className="font-medium">Sports</span>
               <span className="opacity-60 group-hover:translate-x-0.5 transition">→</span>
             </div>
-            <p className="mt-1 text-sm text-slate-600">Personal split & activity calendar.</p>
+            <p className="mt-1 text-sm text-slate-600">A/B split & activity calendar.</p>
           </a>
         </div>
       </div>
@@ -174,12 +211,8 @@ function Home() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
           <h3 className="text-lg font-semibold">Today</h3>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <a href="#/workouts" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 hover:shadow">
-              Personal Split
-            </a>
-            <a href="#/workouts-week" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 hover:shadow">
-              Activity Calendar
-            </a>
+            <a href="#/workouts" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 hover:shadow">Personal Split</a>
+            <a href="#/workouts-week" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 hover:shadow">Activity Calendar</a>
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -194,11 +227,7 @@ function Home() {
   );
 }
 
-function Streaming({
-  items,
-}: {
-  items: { name: string; url: string; color: string }[];
-}) {
+function Streaming({ items }: { items: { name: string; url: string; color: string }[] }) {
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between">
@@ -240,7 +269,7 @@ function Sports() {
             <span className="font-medium">Workouts</span>
             <span className="opacity-60">→</span>
           </div>
-          <p className="mt-1 text-sm text-slate-600">Your A/B split & guidance.</p>
+          <p className="mt-1 text-sm text-slate-600">Your A/B split (editable sets/reps/weights).</p>
         </a>
         <a href="#/workouts-week" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
           <div className="flex items-center justify-between">
@@ -254,51 +283,49 @@ function Sports() {
   );
 }
 
-// ---- Personal A/B split based on preferences ----
-function WorkoutsPlan() {
+// ---- Editable A/B split ----
+function WorkoutsPlan({ plan, onChange }: { plan: ABPlan; onChange: (p: ABPlan) => void }) {
+  const updateExercise = (which: "A" | "B", index: number, patch: Partial<Exercise>) => {
+    const next = { ...plan, [which]: plan[which].map((ex, i) => (i === index ? { ...ex, ...patch } : ex)) } as ABPlan;
+    onChange(next);
+  };
+  const addExercise = (which: "A" | "B") => {
+    const next = { ...plan } as ABPlan;
+    next[which] = [...next[which], { name: "New Exercise", sets: 3, reps: "8–12", weight: "" }];
+    onChange(next);
+  };
+  const removeExercise = (which: "A" | "B", index: number) => {
+    const next = { ...plan } as ABPlan;
+    next[which] = next[which].filter((_, i) => i !== index);
+    onChange(next);
+  };
+
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Personal Split (A/B)</h2>
         <a href="#/sports" className="text-sm underline">Back to sports</a>
       </div>
+
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-        <p className="text-slate-600">
-          Goal: <strong>hypertrophy</strong> (6–12 reps), training <strong>3–4 days/week</strong> at home with a Technogym cable machine and power rack. Priorities: <strong>legs, chest, lower back</strong>. Keep sessions ~60–75 min. Alternate <strong>A ↔ B</strong> every workout (Week 1: A/B/A, Week 2: B/A/B, etc.).
-        </p>
+        <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
+          <h4 className="font-medium">Perfect all‑around warm‑up (~10 min)</h4>
+          <ul className="mt-2 list-disc pl-5 text-slate-700 space-y-1">
+            {plan.warmup.map((w, i) => (
+              <li key={`wu-${i}`}>{w}</li>
+            ))}
+          </ul>
+        </div>
 
-        <SplitCard
-          title="Workout A — Lower (quads focus) + Chest"
-          items={[
-            "Back Squat or Hack Squat — 4×6–10",
-            "Bulgarian Split Squat — 3×8–12/leg",
-            "Cable Leg Extension — 3×10–12 (1s squeeze)",
-            "Bench Press or DB Press — 4×6–10",
-            "Incline DB Press — 3×8–12",
-            "Optional: Cable Fly (mid) — 2×10–15"
-          ]}
-        />
-
-        <SplitCard
-          title="Workout B — Posterior Chain + Back/Shoulders"
-          items={[
-            "Romanian Deadlift — 4×6–10",
-            "Front Squat or Goblet Squat — 3×8–10",
-            "Cable Hamstring Curl — 3×10–12",
-            "Barbell or One‑Arm Cable Row — 4×6–10",
-            "Lat Pulldown or Assisted Pull‑ups — 3×8–12",
-            "Lateral Raise (cable) + Face Pulls — 2–3×12–15"
-          ]}
-        />
+        <ABTable title="Workout A" items={plan.A} onChange={(i, patch) => updateExercise("A", i, patch)} onAdd={() => addExercise("A")} onRemove={(i) => removeExercise("A", i)} />
+        <ABTable title="Workout B" items={plan.B} onChange={(i, patch) => updateExercise("B", i, patch)} onAdd={() => addExercise("B")} onRemove={(i) => removeExercise("B", i)} />
 
         <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
           <h4 className="font-medium">Guidelines</h4>
           <ul className="mt-2 list-disc pl-5 text-slate-700 space-y-1">
-            <li>Warm‑up: 5–8 min easy cardio + 2 light ramp sets for the first big lift.</li>
-            <li>Progression: when you hit the top of a rep range, add ~2.5–5 kg or 1–2 reps next time.</li>
+            <li>Alternate A ↔ B every workout (e.g., Week 1: A/B/A, Week 2: B/A/B).</li>
+            <li>Progression: when you hit the top of a rep range, add 2.5–5 kg or 1–2 reps next time.</li>
             <li>Leave ~1 rep in reserve on most sets; avoid constant failure.</li>
-            <li>Mobility 2–3×/week (8–10 min): hip flexors, hamstrings, T‑spine, pecs.</li>
-            <li>Tennis/padel: place on non‑lower days when possible, or separate by 6–8 hours.</li>
           </ul>
         </div>
       </div>
@@ -306,15 +333,72 @@ function WorkoutsPlan() {
   );
 }
 
-function SplitCard({ title, items }: { title: string; items: string[] }) {
+function ABTable({ title, items, onChange, onAdd, onRemove }: {
+  title: string;
+  items: Exercise[];
+  onChange: (index: number, patch: Partial<Exercise>) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}) {
   return (
     <div className="rounded-2xl border border-slate-200 p-5">
-      <h3 className="font-semibold">{title}</h3>
-      <ul className="mt-3 list-disc pl-5 text-slate-700 space-y-1">
-        {items.map((it) => (
-          <li key={it}>{it}</li>
-        ))}
-      </ul>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="font-semibold">{title}</h3>
+        <button onClick={onAdd} className="text-sm rounded-lg border px-3 py-1 hover:shadow">Add exercise</button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-slate-500">
+              <th className="py-2 pr-3">Exercise</th>
+              <th className="py-2 pr-3">Sets</th>
+              <th className="py-2 pr-3">Reps</th>
+              <th className="py-2 pr-3">Weight</th>
+              <th className="py-2 pl-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((ex, i) => (
+              <tr key={`${title}-${i}`} className="border-t">
+                <td className="py-2 pr-3 min-w-[220px]">
+                  <input
+                    value={ex.name}
+                    onChange={(e) => onChange(i, { name: e.target.value })}
+                    className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  />
+                </td>
+                <td className="py-2 pr-3 w-[90px]">
+                  <input
+                    type="number"
+                    min={1}
+                    value={ex.sets}
+                    onChange={(e) => onChange(i, { sets: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  />
+                </td>
+                <td className="py-2 pr-3 w-[110px]">
+                  <input
+                    value={ex.reps}
+                    onChange={(e) => onChange(i, { reps: e.target.value })}
+                    className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  />
+                </td>
+                <td className="py-2 pr-3 w-[120px]">
+                  <input
+                    value={ex.weight}
+                    onChange={(e) => onChange(i, { weight: e.target.value })}
+                    placeholder="kg"
+                    className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  />
+                </td>
+                <td className="py-2 pl-2">
+                  <button onClick={() => onRemove(i)} className="text-xs underline opacity-70 hover:opacity-100">remove</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -354,13 +438,11 @@ function MonthCalendar({
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button onClick={onPrev} className="rounded-lg border px-3 py-1 hover:shadow">← Prev</button>
-          <div className="font-semibold">
-            {monthName(month)} {year}
-          </div>
+          <div className="font-semibold">{monthName(month)} {year}</div>
           <button onClick={onNext} className="rounded-lg border px-3 py-1 hover:shadow">Next →</button>
         </div>
 
-        {/* Weekday headers (Sun–Sat for IL) */}
+        {/* Weekday headers (Sun–Sat) */}
         <div className="grid grid-cols-7 text-center text-xs font-medium text-slate-500 mb-2">
           {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d)=> (<div key={d} className="py-1">{d}</div>))}
         </div>
@@ -368,7 +450,7 @@ function MonthCalendar({
         {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-1">
           {weeks.map((wk, wi) => (
-            <>
+            <Fragment key={`w-${wi}`}>
               {wk.map((cell, ci) => {
                 const inMonth = cell.inMonth;
                 const dateStr = cell.iso;
@@ -376,7 +458,7 @@ function MonthCalendar({
                 const worked = !!entry;
                 return (
                   <button
-                    key={`${wi}-${ci}`}
+                    key={`c-${wi}-${ci}`}
                     onClick={() => (worked ? openForEdit(dateStr, entry) : openForNew(dateStr))}
                     className={
                       "relative aspect-square rounded-xl border p-2 text-left transition " +
@@ -386,18 +468,16 @@ function MonthCalendar({
                   >
                     <div className="text-xs font-medium text-slate-500">{cell.day}</div>
                     {worked && (
-                      <div className="mt-2 text-xs rounded-lg px-2 py-1 bg-emerald-100 text-emerald-800">
-                        {entry.label}
-                      </div>
+                      <div className="mt-2 text-xs rounded-lg px-2 py-1 bg-emerald-100 text-emerald-800">{entry.label}</div>
                     )}
                   </button>
                 );
               })}
-            </>
+            </Fragment>
           ))}
         </div>
 
-        <p className="mt-3 text-xs text-slate-500">Click a day you worked out. You'll be asked what workout it was and a short note. Data saves automatically; you can also hit the Save button at the top.</p>
+        <p className="mt-3 text-xs text-slate-500">Click a day you trained. You&apos;ll be asked what workout it was and a short note. Data auto-saves; you can also hit Save (top right).</p>
       </div>
 
       {/* Dialog */}
@@ -407,34 +487,17 @@ function MonthCalendar({
           label={dialog.label}
           note={dialog.note}
           onCancel={() => setDialog(null)}
-          onSave={(label, note) => {
-            onSave(dialog.dateStr, { label, note });
-            setDialog(null);
-          }}
-          onClear={() => {
-            onClear(dialog.dateStr);
-            setDialog(null);
-          }}
+          onSave={(label, note) => { onSave(dialog.dateStr, { label, note }); setDialog(null); }}
+          onClear={() => { onClear(dialog.dateStr); setDialog(null); }}
         />
       )}
     </section>
   );
 }
 
-function EditDialog({
-  dateStr,
-  label,
-  note,
-  onCancel,
-  onSave,
-  onClear,
-}: {
-  dateStr: string;
-  label: string;
-  note: string;
-  onCancel: () => void;
-  onSave: (label: string, note: string) => void;
-  onClear: () => void;
+function EditDialog({ dateStr, label, note, onCancel, onSave, onClear }: {
+  dateStr: string; label: string; note: string;
+  onCancel: () => void; onSave: (label: string, note: string) => void; onClear: () => void;
 }) {
   const [l, setL] = useState(label);
   const [n, setN] = useState(note);
@@ -445,19 +508,9 @@ function EditDialog({
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-lg">
         <div className="mb-3 text-sm text-slate-500">{title}</div>
         <label className="block text-sm font-medium">What workout was it?</label>
-        <input
-          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
-          placeholder="e.g., Workout A, Workout B, Tennis"
-          value={l}
-          onChange={(e) => setL(e.target.value)}
-        />
+        <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-200" placeholder="Workout A, Workout B, Tennis" value={l} onChange={(e) => setL(e.target.value)} />
         <label className="mt-3 block text-sm font-medium">Small note</label>
-        <textarea
-          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-200 min-h-[90px]"
-          placeholder="How it felt, PRs, anything"
-          value={n}
-          onChange={(e) => setN(e.target.value)}
-        />
+        <textarea className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-200 min-h-[90px]" placeholder="How it felt, PRs, anything" value={n} onChange={(e) => setN(e.target.value)} />
         <div className="mt-4 flex items-center justify-between">
           <div className="flex gap-2">
             <button onClick={onCancel} className="rounded-xl border px-3 py-2 hover:shadow">Cancel</button>
@@ -476,36 +529,19 @@ function navBtn(active?: boolean) {
   return active ? `${base} bg-slate-100` : `${base}`;
 }
 
-function monthName(m: number) {
-  return new Date(2025, m, 1).toLocaleString(undefined, { month: 'long' });
-}
-
-function prevMonth(c: {year: number; month: number}) {
-  const d = new Date(c.year, c.month, 1);
-  d.setMonth(d.getMonth() - 1);
-  return { year: d.getFullYear(), month: d.getMonth() };
-}
-function nextMonth(c: {year: number; month: number}) {
-  const d = new Date(c.year, c.month, 1);
-  d.setMonth(d.getMonth() + 1);
-  return { year: d.getFullYear(), month: d.getMonth() };
-}
-
+function monthName(m: number) { return new Date(2025, m, 1).toLocaleString(undefined, { month: 'long' }); }
+function prevMonth(c: {year: number; month: number}) { const d = new Date(c.year, c.month, 1); d.setMonth(d.getMonth() - 1); return { year: d.getFullYear(), month: d.getMonth() }; }
+function nextMonth(c: {year: number; month: number}) { const d = new Date(c.year, c.month, 1); d.setMonth(d.getMonth() + 1); return { year: d.getFullYear(), month: d.getMonth() }; }
 function pad(n: number) { return String(n).padStart(2, '0'); }
 function monthKeyOf(year: number, month: number) { return `${year}-${pad(month+1)}`; }
 
 function buildCalendar(year: number, month: number) {
-  // Sunday-first weeks for IL
+  // Sunday-first weeks
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
   const weeks: { day: number; inMonth: boolean; iso: string }[][] = [];
-
-  // Start from Sunday of the week containing the 1st
-  const start = new Date(first);
-  start.setDate(first.getDate() - first.getDay()); // 0=Sun
-
-  // Build 6 rows * 7 days grid
-  let cursor = new Date(start);
+  const start = new Date(first); start.setDate(first.getDate() - first.getDay());
+  const cursor = new Date(start);
   for (let w = 0; w < 6; w++) {
     const row: { day: number; inMonth: boolean; iso: string }[] = [];
     for (let d = 0; d < 7; d++) {
@@ -516,28 +552,15 @@ function buildCalendar(year: number, month: number) {
     }
     weeks.push(row);
   }
-
   return { weeks, monthKey: monthKeyOf(year, month) };
 }
 
-function saveDay(
-  state: Record<string, Record<string, DayEntry>>,
-  dateStr: string,
-  entry: DayEntry
-) {
-  const d = new Date(dateStr);
-  const key = monthKeyOf(d.getFullYear(), d.getMonth());
-  const monthMap = { ...(state[key] || {}) };
-  if (!entry.label && !entry.note) return state; // ignore empty saves
-  monthMap[dateStr] = entry;
-  return { ...state, [key]: monthMap };
+function saveDay(state: Record<string, Record<string, DayEntry>>, dateStr: string, entry: DayEntry) {
+  const d = new Date(dateStr); const key = monthKeyOf(d.getFullYear(), d.getMonth());
+  const monthMap = { ...(state[key] || {}) }; if (!entry.label && !entry.note) return state; monthMap[dateStr] = entry; return { ...state, [key]: monthMap };
 }
 
 function clearDay(state: Record<string, Record<string, DayEntry>>, dateStr: string) {
-  const d = new Date(dateStr);
-  const key = monthKeyOf(d.getFullYear(), d.getMonth());
-  if (!state[key]) return state;
-  const monthMap = { ...state[key] };
-  delete monthMap[dateStr];
-  return { ...state, [key]: monthMap };
+  const d = new Date(dateStr); const key = monthKeyOf(d.getFullYear(), d.getMonth());
+  if (!state[key]) return state; const monthMap = { ...state[key] }; delete monthMap[dateStr]; return { ...state, [key]: monthMap };
 }
