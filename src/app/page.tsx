@@ -55,29 +55,33 @@ export default function Page() {
   }, [calData]);
 
   // ---- A/B Plan (editable) ----
-  const PLAN_KEY = "ab-plan-v1";
+  const PLAN_KEY = "ab-plan-2025-08-11";
   const defaultPlan: ABPlan = {
     warmup: [
-      "3 min easy cardio (bike/row/jog)",
-      "Mobility: 90/90 hips 30s/side, T-spine rotations 8/side, ankle rocks 10/side",
-      "Activation: glute bridge 12, band pull-aparts 15, scap push-ups 10",
-      "Potentiation: 2–3 ramp-up sets to first lift (≈40% / 70% working weight)"
+      "Jumping Jacks × 30 sec",
+      "High Knees × 30 sec",
+      "Arm Circles (forwards & backwards) × 20 sec each",
+      "Bodyweight Squats × 10",
     ],
     A: [
-      { name: "Back Squat / Hack Squat", sets: 4, reps: "6–10", weight: "" },
-      { name: "Bulgarian Split Squat", sets: 3, reps: "8–12/leg", weight: "" },
-      { name: "Cable Leg Extension", sets: 3, reps: "10–12", weight: "" },
-      { name: "Bench Press / DB Press", sets: 4, reps: "6–10", weight: "" },
-      { name: "Incline DB Press", sets: 3, reps: "8–12", weight: "" },
-      { name: "Cable Fly (mid)", sets: 2, reps: "10–15", weight: "" },
+      { name: "Incline Barbell Press (Power Rack)", sets: 4, reps: "6–8", weight: "" },
+      { name: "Pull-ups (Weighted if possible, or Cable Pulldown)", sets: 4, reps: "6–8", weight: "" },
+      { name: "Flat Cable Fly", sets: 3, reps: "10–12", weight: "" },
+      { name: "One-arm Cable Row", sets: 3, reps: "8–10", weight: "" },
+      { name: "Overhead Cable Press", sets: 3, reps: "8–10", weight: "" },
+      { name: "Cable Bicep Curl (EZ bar or rope)", sets: 3, reps: "10–12", weight: "" },
+      { name: "Cable Rope Overhead Triceps Extension", sets: 3, reps: "10–12", weight: "" },
+      { name: "Hanging Leg Raise or Cable Crunch", sets: 3, reps: "12–15", weight: "" },
     ],
     B: [
-      { name: "Romanian Deadlift", sets: 4, reps: "6–10", weight: "" },
-      { name: "Front Squat / Goblet Squat", sets: 3, reps: "8–10", weight: "" },
-      { name: "Cable Hamstring Curl", sets: 3, reps: "10–12", weight: "" },
-      { name: "Barbell or One-Arm Cable Row", sets: 4, reps: "6–10", weight: "" },
-      { name: "Lat Pulldown / Assisted Pull-ups", sets: 3, reps: "8–12", weight: "" },
-      { name: "Lateral Raise + Face Pulls", sets: 2, reps: "12–15", weight: "" },
+      { name: "Front Squat (Power Rack)", sets: 4, reps: "6–8", weight: "" },
+      { name: "Cable Romanian Deadlift", sets: 4, reps: "8–10", weight: "" },
+      { name: "Cable Leg Extension", sets: 3, reps: "12–15", weight: "" },
+      { name: "Cable Hamstring Curl (Ankle strap)", sets: 3, reps: "12–15", weight: "" },
+      { name: "Barbell Hip Thrust", sets: 3, reps: "8–10", weight: "" },
+      { name: "Cable Glute Kickback", sets: 3, reps: "12–15", weight: "" },
+      { name: "Weighted Back Extensions (or Superman hold)", sets: 3, reps: "12–15", weight: "" },
+      { name: "Cable Deadbug", sets: 3, reps: "12–15", weight: "" },
     ],
   };
 
