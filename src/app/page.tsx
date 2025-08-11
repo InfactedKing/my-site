@@ -31,6 +31,9 @@ export default function Page() {
     return () => window.removeEventListener("hashchange", parse);
   }, []);
 
+  const isStreaming = route === "streaming";
+  const isSports = route === "sports";
+
   // ---- Activity calendar (monthly) ----
   const [current, setCurrent] = useState(() => {
     const d = new Date();
@@ -129,29 +132,73 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div
+      className={
+        isStreaming
+          ? "relative min-h-screen text-zinc-100 bg-black"
+          : "relative min-h-screen text-slate-900 bg-slate-50"
+      }
+    >
+      {/* Global backgrounds (conditional) */}
+      {isStreaming && (
+        <>
+          <span className="pointer-events-none absolute -top-24 left-6 h-[28rem] w-[28rem] blur-3xl opacity-40"
+            style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.18), transparent 70%)" }} />
+          <span className="pointer-events-none absolute top-1/4 right-10 h-[22rem] w-[22rem] blur-3xl opacity-30"
+            style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.10), transparent 70%)" }} />
+          <span className="pointer-events-none absolute bottom-[-6rem] left-1/2 -translate-x-1/2 h-[26rem] w-[26rem] blur-3xl opacity-25"
+            style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.12), transparent 70%)" }} />
+        </>
+      )}
+
+      {isSports && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=2000&q=60')] bg-cover bg-center opacity-20" />
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=2000&q=60')] bg-cover bg-center mix-blend-overlay opacity-20" />
+        </div>
+      )}
+
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <header
+        className={
+          isStreaming
+            ? "sticky top-0 z-50 border-b border-zinc-800 bg-black/70 backdrop-blur"
+            : "sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur"
+        }
+      >
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-xl bg-slate-900 text-white grid place-items-center font-semibold">R</div>
+            <div className={isStreaming ? "h-8 w-8 rounded-xl bg-white text-black grid place-items-center font-semibold" : "h-8 w-8 rounded-xl bg-slate-900 text-white grid place-items-center font-semibold"}>R</div>
             <h1 className="text-lg font-semibold tracking-tight">Roey — Personal Dashboard</h1>
           </div>
           <div className="flex items-center gap-2">
             <nav className="flex items-center gap-2">
-              <a href="#/home" className={navBtn(route === "home")}>Home</a>
-              <a href="#/streaming" className={navBtn(route === "streaming")}>Streaming</a>
-              <a href="#/sports" className={navBtn(route === "sports")}>Sports</a>
+              <a href="#/home" className={navBtn(route === "home", isStreaming)}>Home</a>
+              <a href="#/streaming" className={navBtn(route === "streaming", isStreaming)}>Streaming</a>
+              <a href="#/sports" className={navBtn(route === "sports", isStreaming)}>Sports</a>
             </nav>
-            <button onClick={manualSave} className="ml-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-900 text-white hover:shadow">Save</button>
-            {saved && <span className="text-xs text-emerald-600" aria-live="polite">Saved</span>}
+            <button
+              onClick={manualSave}
+              className={
+                isStreaming
+                  ? "ml-2 px-3 py-2 rounded-xl border border-zinc-800 bg-white/10 text-white hover:bg-white/15"
+                  : "ml-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-900 text-white hover:shadow"
+              }
+            >
+              Save
+            </button>
+            {saved && (
+              <span className={isStreaming ? "text-xs text-emerald-400" : "text-xs text-emerald-600"} aria-live="polite">
+                Saved
+              </span>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main */}
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        {route === "home" && <Home />}
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-8">
+        {route === "home" && <Home isDark={isStreaming} />}
         {route === "streaming" && <Streaming items={streaming} />}
         {route === "sports" && <Sports />}
         {route === "workouts" && (
@@ -171,8 +218,8 @@ export default function Page() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 border-t border-slate-200">
-        <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-slate-500 flex items-center justify-between">
+      <footer className={isStreaming ? "mt-16 border-t border-zinc-800" : "mt-16 border-t border-slate-200"}>
+        <div className={isStreaming ? "mx-auto max-w-6xl px-4 py-6 text-sm text-zinc-400 flex items-center justify-between" : "mx-auto max-w-6xl px-4 py-6 text-sm text-slate-500 flex items-center justify-between"}>
           <span>Made for me — fast, clean, practical.</span>
           <span suppressHydrationWarning>{today}</span>
         </div>
@@ -183,43 +230,53 @@ export default function Page() {
 
 // ---------- Subcomponents ----------
 
-function Home() {
+function Home({ isDark }: { isDark?: boolean }) {
+  // Home stays light theme generally; when visited while streaming route is active, keep cards readable on dark too.
+  const card = isDark
+    ? "rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-sm"
+    : "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm";
+  const sub = isDark ? "text-zinc-300" : "text-slate-600";
+  const linkCard = isDark
+    ? "group rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur p-4 hover:bg-zinc-900"
+    : "group rounded-xl border border-slate-200 bg-white/70 backdrop-blur p-4 hover:shadow-md";
+
   return (
     <section className="space-y-8">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className={card}>
         <h2 className="text-xl font-semibold">Welcome</h2>
-        <p className="mt-2 text-slate-600">Quick access to the stuff I actually use. One clean hub.</p>
+        <p className={`mt-2 ${sub}`}>Quick access to the stuff I actually use. One clean hub.</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <a href="#/streaming" className="group rounded-xl border border-slate-200 bg-white/70 backdrop-blur p-4 hover:shadow-md transition-transform">
+          <a href="#/streaming" className={linkCard}>
             <div className="flex items-center justify-between">
               <span className="font-medium">Streaming Services</span>
               <span className="opacity-60 group-hover:translate-x-0.5 transition">→</span>
             </div>
-            <p className="mt-1 text-sm text-slate-600">All my platforms in one place.</p>
+            <p className={`mt-1 text-sm ${sub}`}>All my platforms in one place.</p>
           </a>
-          <a href="#/sports" className="group rounded-xl border border-slate-200 bg-white/70 backdrop-blur p-4 hover:shadow-md transition-transform">
+          <a href="#/sports" className={linkCard}>
             <div className="flex items-center justify-between">
               <span className="font-medium">Sports</span>
               <span className="opacity-60 group-hover:translate-x-0.5 transition">→</span>
             </div>
-            <p className="mt-1 text-sm text-slate-600">A/B split & activity calendar.</p>
+            <p className={`mt-1 text-sm ${sub}`}>A/B split & activity calendar.</p>
           </a>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-          <h3 className="text-lg font-semibold">Today</h3>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <a href="#/workouts" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 hover:shadow">Personal Split</a>
-            <a href="#/workouts-week" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 hover:shadow">Activity Calendar</a>
+      <div className={card}>
+        <h3 className="text-lg font-semibold">Quick Links</h3>
+        <div className="mt-3 grid gap-3">
+          <div className="flex items-center justify-between">
+            <span className={isDark ? "text-zinc-300" : "text-slate-700"}>WhatsApp</span>
+            <a href="whatsapp://send" className="underline">Open app</a>
           </div>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold">Quick Links</h3>
-          <div className="mt-3 grid gap-2">
-            <a className="underline text-slate-700" href="#/streaming">Streaming hub</a>
-            <a className="underline text-slate-700" href="#/sports">Sports hub</a>
+          <div className="flex items-center justify-between">
+            <span className={isDark ? "text-zinc-300" : "text-slate-700"}>Mail</span>
+            <a href="mailto:" className="underline">Open app</a>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={isDark ? "text-zinc-300" : "text-slate-700"}>Contacts</span>
+            <a href="addressbook://" className="underline">Open app</a>
           </div>
         </div>
       </div>
@@ -234,23 +291,50 @@ function Streaming({ items }: { items: { name: string; url: string; color: strin
         <h2 className="text-xl font-semibold">Streaming Services</h2>
         <a href="#/home" className="text-sm underline">Back to home</a>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((s) => (
-          <a
-            key={s.name}
-            href={s.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-2xl p-5 shadow-sm hover:shadow-md border border-slate-200 text-white"
-            style={{ backgroundColor: s.color }}
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{s.name}</span>
-              <span className="opacity-90">↗</span>
-            </div>
-            <p className="mt-1 text-sm opacity-90">Open {s.name}</p>
-          </a>
-        ))}
+
+      {/* Theatre wrapper (dark) */}
+      <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-black text-white p-6 shadow-sm">
+        {/* Lights */}
+        <span className="pointer-events-none absolute -top-10 left-8 h-64 w-64 blur-2xl opacity-60"
+          style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.18), transparent 70%)" }} />
+        <span className="pointer-events-none absolute -bottom-12 right-10 h-72 w-72 blur-3xl opacity-50"
+          style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.12), transparent 70%)" }} />
+        <span className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 blur-3xl opacity-30"
+          style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.08), transparent 70%)" }} />
+
+        {/* Banner */}
+        <div className="relative z-10 flex items-center gap-3">
+          <span className="text-2xl" role="img" aria-label="clapper">🎬</span>
+          <div>
+            <h3 className="font-semibold">Movie Theatre Mode</h3>
+            <p className="text-sm opacity-80">Lights down. All your platforms in one place.</p>
+          </div>
+        </div>
+
+        {/* Screen */}
+        <div className="relative z-10 mt-5 rounded-[28px] bg-white text-slate-900 p-5 shadow-[0_0_120px_rgba(255,255,255,0.25)]">
+          <div className="pointer-events-none absolute -inset-1 rounded-[30px] border border-white/30" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((s) => (
+              <a
+                key={s.name}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative overflow-hidden rounded-2xl p-5 shadow-sm hover:shadow-md border border-slate-200 text-white"
+                style={{ backgroundColor: s.color }}
+              >
+                {/* vignette */}
+                <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.35), transparent 40%)" }} />
+                <div className="relative flex items-center justify-between">
+                  <span className="font-medium">{s.name}</span>
+                  <span className="opacity-90">↗</span>
+                </div>
+                <p className="relative mt-1 text-sm opacity-90">Start watching</p>
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -263,6 +347,17 @@ function Sports() {
         <h2 className="text-xl font-semibold">Sports</h2>
         <a href="#/home" className="text-sm underline">Back to home</a>
       </div>
+
+      {/* Sports banner + keep light cards */}
+      <div className="relative overflow-hidden rounded-2xl border border-emerald-900 bg-emerald-900 text-white p-6 shadow-sm">
+        <div className="relative z-10 flex items-center gap-3">
+          <span aria-hidden className="text-xl">🎾</span>
+          <h3 className="font-semibold">Sports Hub</h3>
+          <span aria-hidden className="text-xl">🏋️‍♂️</span>
+        </div>
+        <p className="relative z-10 mt-1 text-sm text-emerald-100">Workouts and your Activity Calendar.</p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <a href="#/workouts" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
           <div className="flex items-center justify-between">
@@ -317,8 +412,20 @@ function WorkoutsPlan({ plan, onChange }: { plan: ABPlan; onChange: (p: ABPlan) 
           </ul>
         </div>
 
-        <ABTable title="Workout A" items={plan.A} onChange={(i, patch) => updateExercise("A", i, patch)} onAdd={() => addExercise("A")} onRemove={(i) => removeExercise("A", i)} />
-        <ABTable title="Workout B" items={plan.B} onChange={(i, patch) => updateExercise("B", i, patch)} onAdd={() => addExercise("B")} onRemove={(i) => removeExercise("B", i)} />
+        <ABTable
+          title="Workout A"
+          items={plan.A}
+          onChange={(i, patch) => updateExercise("A", i, patch)}
+          onAdd={() => addExercise("A")}
+          onRemove={(i) => removeExercise("A", i)}
+        />
+        <ABTable
+          title="Workout B"
+          items={plan.B}
+          onChange={(i, patch) => updateExercise("B", i, patch)}
+          onAdd={() => addExercise("B")}
+          onRemove={(i) => removeExercise("B", i)}
+        />
 
         <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
           <h4 className="font-medium">Guidelines</h4>
@@ -340,6 +447,17 @@ function ABTable({ title, items, onChange, onAdd, onRemove }: {
   onAdd: () => void;
   onRemove: (index: number) => void;
 }) {
+  const [editing, setEditing] = useState<number | null>(null);
+  const [draft, setDraft] = useState<Exercise | null>(null);
+
+  const startEdit = (i: number) => { setEditing(i); setDraft({ ...items[i] }); };
+  const cancelEdit = () => { setEditing(null); setDraft(null); };
+  const saveEdit = (i: number) => {
+    if (!draft) return;
+    onChange(i, { name: draft.name, sets: draft.sets, reps: draft.reps, weight: draft.weight });
+    setEditing(null); setDraft(null);
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200 p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -358,44 +476,73 @@ function ABTable({ title, items, onChange, onAdd, onRemove }: {
             </tr>
           </thead>
           <tbody>
-            {items.map((ex, i) => (
-              <tr key={`${title}-${i}`} className="border-t">
-                <td className="py-2 pr-3 min-w-[220px]">
-                  <input
-                    value={ex.name}
-                    onChange={(e) => onChange(i, { name: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                  />
-                </td>
-                <td className="py-2 pr-3 w-[90px]">
-                  <input
-                    type="number"
-                    min={1}
-                    value={ex.sets}
-                    onChange={(e) => onChange(i, { sets: Number(e.target.value) })}
-                    className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                  />
-                </td>
-                <td className="py-2 pr-3 w-[110px]">
-                  <input
-                    value={ex.reps}
-                    onChange={(e) => onChange(i, { reps: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                  />
-                </td>
-                <td className="py-2 pr-3 w-[120px]">
-                  <input
-                    value={ex.weight}
-                    onChange={(e) => onChange(i, { weight: e.target.value })}
-                    placeholder="kg"
-                    className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                  />
-                </td>
-                <td className="py-2 pl-2">
-                  <button onClick={() => onRemove(i)} className="text-xs underline opacity-70 hover:opacity-100">remove</button>
-                </td>
-              </tr>
-            ))}
+            {items.map((ex, i) => {
+              const isEditing = editing === i;
+              return (
+                <tr key={`${title}-${i}`} className="border-t align-top">
+                  <td className="py-2 pr-3 min-w-[240px]">
+                    {isEditing ? (
+                      <input
+                        value={draft?.name || ""}
+                        onChange={(e) => setDraft((d) => ({ ...(d as Exercise), name: e.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-slate-800">{ex.name}</span>
+                        <button onClick={() => startEdit(i)} className="text-xs rounded-lg border px-2 py-1 hover:shadow">Edit</button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-2 pr-3 w-[90px]">
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        min={1}
+                        value={draft?.sets ?? ex.sets}
+                        onChange={(e) => setDraft((d) => ({ ...(d as Exercise), sets: Number(e.target.value) }))}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                      />
+                    ) : (
+                      <span>{ex.sets}</span>
+                    )}
+                  </td>
+                  <td className="py-2 pr-3 w-[120px]">
+                    {isEditing ? (
+                      <input
+                        value={draft?.reps || ex.reps}
+                        onChange={(e) => setDraft((d) => ({ ...(d as Exercise), reps: e.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                      />
+                    ) : (
+                      <span>{ex.reps}</span>
+                    )}
+                  </td>
+                  <td className="py-2 pr-3 w-[130px]">
+                    {isEditing ? (
+                      <input
+                        value={draft?.weight || ex.weight}
+                        onChange={(e) => setDraft((d) => ({ ...(d as Exercise), weight: e.target.value }))}
+                        placeholder="kg"
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                      />
+                    ) : (
+                      <span className="text-slate-700">{ex.weight || "—"}</span>
+                    )}
+                  </td>
+                  <td className="py-2 pl-2">
+                    {isEditing ? (
+                      <div className="flex gap-2">
+                        <button onClick={() => saveEdit(i)} className="text-xs rounded-lg bg-slate-900 text-white px-3 py-1 hover:shadow">Save</button>
+                        <button onClick={cancelEdit} className="text-xs rounded-lg border px-3 py-1 hover:shadow">Cancel</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => onRemove(i)} className="text-xs underline opacity-70 hover:opacity-100">remove</button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -481,16 +628,24 @@ function MonthCalendar({
       </div>
 
       {/* Dialog */}
-      {dialog && (
+      {dialog ? (
         <EditDialog
           dateStr={dialog.dateStr}
           label={dialog.label}
           note={dialog.note}
           onCancel={() => setDialog(null)}
-          onSave={(label, note) => { onSave(dialog.dateStr, { label, note }); setDialog(null); }}
-          onClear={() => { onClear(dialog.dateStr); setDialog(null); }}
+          onSave={(label, note) => {
+            const ds = dialog!.dateStr;
+            onSave(ds, { label, note });
+            setDialog(null);
+          }}
+          onClear={() => {
+            const ds = dialog!.dateStr;
+            onClear(ds);
+            setDialog(null);
+          }}
         />
-      )}
+      ) : null}
     </section>
   );
 }
@@ -504,7 +659,7 @@ function EditDialog({ dateStr, label, note, onCancel, onSave, onClear }: {
   const title = new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-lg">
         <div className="mb-3 text-sm text-slate-500">{title}</div>
         <label className="block text-sm font-medium">What workout was it?</label>
@@ -524,9 +679,13 @@ function EditDialog({ dateStr, label, note, onCancel, onSave, onClear }: {
 }
 
 // ---------- Utilities ----------
-function navBtn(active?: boolean) {
+function navBtn(active?: boolean, dark?: boolean) {
+  if (dark) {
+    const base = "px-3 py-2 rounded-xl transition hover:bg-white/10";
+    return active ? `${base} bg-white/10` : base;
+  }
   const base = "px-3 py-2 rounded-xl transition hover:shadow-sm hover:bg-slate-100";
-  return active ? `${base} bg-slate-100` : `${base}`;
+  return active ? `${base} bg-slate-100` : base;
 }
 
 function monthName(m: number) { return new Date(2025, m, 1).toLocaleString(undefined, { month: 'long' }); }
